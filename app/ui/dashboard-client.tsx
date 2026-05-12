@@ -170,8 +170,9 @@ function OperationsPanel({
         <div className="connectionBody">
           <div>
             <p className="modeExplainer">
-              This dashboard supports two data modes: <strong>public sync</strong> for public channel metrics and comments, and{" "}
-              <strong>owner sync</strong> when the channel owner connects Google OAuth for deeper channel-authorized access.
+              This dashboard uses two separate data paths. <strong>Sync public data</strong> and <strong>Sync as owner</strong> update the
+              live YouTube store and the latest API sync status. The tabbed analysis below stays on the exported report snapshot until a new
+              analysis snapshot is generated and deployed.
             </p>
             <p>
               Current mode: <strong>{formatAccessMode(status.currentMode)}</strong>
@@ -179,7 +180,7 @@ function OperationsPanel({
             <p>
               Owner OAuth: <strong>{status.oauthConnected ? "connected" : "not connected"}</strong>
             </p>
-            <small>Public sync uses the API key. Owner sync uses the channel owner&apos;s approved Google access.</small>
+            <small>Public sync uses the API key. Owner sync uses the channel owner&apos;s approved Google access. Neither button regenerates the exported analysis snapshot on its own.</small>
           </div>
           <div className="syncActions">
             <button
@@ -187,11 +188,11 @@ function OperationsPanel({
               onClick={() => onSync("public_only")}
               type="button"
             >
-              {busy === "public_only" ? "Syncing..." : "Sync public data"}
+              {busy === "public_only" ? "Syncing..." : "Sync latest public data"}
             </button>
             <a href="/api/auth/youtube/start">Connect owner OAuth</a>
             <button disabled={busy !== null || !status.oauthConnected} onClick={() => onSync("owner_connected")} type="button">
-              {busy === "owner_connected" ? "Syncing..." : "Sync as owner"}
+              {busy === "owner_connected" ? "Syncing..." : "Sync latest owner data"}
             </button>
           </div>
         </div>
@@ -241,8 +242,9 @@ function Overview({
         <article className="studioPanel lastSyncPanel">
           <PanelTitle eyebrow="data freshness" title="Snapshot + API status" />
           <p className="freshnessNote">
-            Dashboard insights come from the exported report snapshot: {formatValue(metrics.commentsReviewed)} comments across{" "}
-            {formatValue(metrics.videosRepresented)} represented videos. The API sync below only shows the most recent public/owner sync attempt.
+            The dashboard tabs and hero summary are currently showing the exported analysis snapshot from {extractSnapshotGeneratedAt(snapshot)}.
+            That snapshot covers {formatValue(metrics.commentsReviewed)} comments across {formatValue(metrics.videosRepresented)} represented
+            videos. The API fields below only describe the most recent live public or owner sync attempt.
           </p>
           <dl>
             <div>
@@ -252,6 +254,10 @@ function Overview({
             <div>
               <dt>Snapshot videos represented</dt>
               <dd>{formatValue(metrics.videosRepresented)}</dd>
+            </div>
+            <div>
+              <dt>Snapshot generated</dt>
+              <dd>{extractSnapshotGeneratedAt(snapshot)}</dd>
             </div>
             <div>
               <dt>Last API mode</dt>
@@ -639,8 +645,12 @@ function formatAccessMode(value: string | undefined) {
 }
 
 function buildAnalysisCoverage(snapshot: CommentInsightsSnapshot) {
-  const generatedAt = snapshot.dashboard.subtitle.match(/Generated\s+(.+?)\.$/)?.[1] || "the latest exported report";
-  return `A comprehensive analysis of ${formatValue(snapshot.dashboard.metrics.commentsReviewed)} comments across recent DataSense videos, generated on ${generatedAt}.`;
+  const generatedAt = extractSnapshotGeneratedAt(snapshot);
+  return `The overview and tabs below are powered by an exported analysis snapshot covering ${formatValue(snapshot.dashboard.metrics.commentsReviewed)} comments across recent DataSense videos, generated on ${generatedAt}.`;
+}
+
+function extractSnapshotGeneratedAt(snapshot: CommentInsightsSnapshot) {
+  return snapshot.dashboard.subtitle.match(/Generated\s+(.+?)\.$/)?.[1] || "the latest exported report";
 }
 
 function formatCompact(value: number) {
