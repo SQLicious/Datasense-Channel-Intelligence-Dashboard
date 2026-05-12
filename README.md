@@ -4,6 +4,12 @@ DataSense Channel Intelligence is a production-oriented YouTube analytics dashbo
 
 This project was built completely in the Codex desktop app. The initial workflow was inspired by Nate Herk's [Master 97% of Codex in 1 Hour](https://www.youtube.com/watch?v=3TdD8Qv5Tk8) tutorial, then extended through hands-on iteration to ship a deployed working product in a single evening.
 
+## Demo Video
+
+[Watch the demo on YouTube](https://youtu.be/F9GvLyUG8wU)
+
+[![DataSense Channel Intelligence demo thumbnail](output/datasense-ai-studio-desktop.png)](https://youtu.be/F9GvLyUG8wU)
+
 ## What the app does today
 
 - Surfaces channel-level context, freshness state, and dashboard metrics for the DataSense channel
