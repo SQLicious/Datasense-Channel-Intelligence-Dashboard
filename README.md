@@ -107,7 +107,6 @@ Useful project docs:
 
 - [docs/google-cloud-youtube-setup.md](/C:/Users/roopm/OneDrive/Documents/New%20project/docs/google-cloud-youtube-setup.md)
 - [docs/supabase-setup.md](/C:/Users/roopm/OneDrive/Documents/New%20project/docs/supabase-setup.md)
-- [docs/troubleshooting-runbook.md](/C:/Users/roopm/OneDrive/Documents/New%20project/docs/troubleshooting-runbook.md)
 - [docs/developer-notes.md](/C:/Users/roopm/OneDrive/Documents/New%20project/docs/developer-notes.md)
 
 ## Planned upgrades
