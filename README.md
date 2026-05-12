@@ -105,9 +105,9 @@ The app is designed for Vercel deployment. Production durability depends on Supa
 
 Useful project docs:
 
-- [docs/google-cloud-youtube-setup.md](/C:/Users/roopm/OneDrive/Documents/New%20project/docs/google-cloud-youtube-setup.md)
-- [docs/supabase-setup.md](/C:/Users/roopm/OneDrive/Documents/New%20project/docs/supabase-setup.md)
-- [docs/developer-notes.md](/C:/Users/roopm/OneDrive/Documents/New%20project/docs/developer-notes.md)
+- [docs/google-cloud-youtube-setup.md](docs/google-cloud-youtube-setup.md)
+- [docs/supabase-setup.md](docs/supabase-setup.md)
+- [docs/developer-notes.md](docs/developer-notes.md)
 
 ## Planned upgrades
 
