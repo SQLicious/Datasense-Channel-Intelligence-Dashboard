@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getClientIp, hashClientIp } from "../../../../src/lib/youtube/client-ip";
 import { readOwnerOAuthCookie } from "../../../../src/lib/youtube/cookies";
+import { formatPublicSyncRateLimitMessage, getPublicSyncRateLimit } from "../../../../src/lib/youtube/sync-rate-limit";
 import { syncYoutubeData } from "../../../../src/lib/youtube/sync";
+import { readPublicSyncAttempts, savePublicSyncAttempts } from "../../../../src/lib/youtube/store";
 import type { AccessMode } from "../../../../src/lib/youtube/types";
 
 export async function POST(request: NextRequest) {
@@ -11,6 +14,35 @@ export async function POST(request: NextRequest) {
       maxComments?: number;
       includeReplies?: boolean;
     };
+
+    if ((body.accessMode || "public_only") === "public_only") {
+      const now = new Date().toISOString();
+      const ipHash = hashClientIp(getClientIp(request));
+
+      if (!ipHash) {
+        return NextResponse.json(
+          {
+            error: "Public sync is unavailable because the client IP could not be determined.",
+          },
+          { status: 400 }
+        );
+      }
+
+      const attempts = await readPublicSyncAttempts(ipHash);
+      const rateLimit = getPublicSyncRateLimit(attempts, now);
+
+      if (rateLimit.blocked && rateLimit.retryAt) {
+        return NextResponse.json(
+          {
+            error: formatPublicSyncRateLimitMessage(rateLimit.retryAt),
+            retryAt: rateLimit.retryAt,
+          },
+          { status: 429 }
+        );
+      }
+
+      await savePublicSyncAttempts(ipHash, [...rateLimit.recentAttempts, now]);
+    }
 
     const result = await syncYoutubeData({
       accessMode: body.accessMode,

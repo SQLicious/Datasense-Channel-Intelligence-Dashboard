@@ -24,6 +24,11 @@ type LiveStatus = {
   videosSeen?: number;
   commentsSeen?: number;
   warnings?: number;
+  publicSyncRateLimit?: {
+    blocked?: boolean;
+    retryAt?: string;
+    remainingAttempts?: number;
+  };
 };
 
 export default function DashboardClient({
@@ -42,9 +47,13 @@ export default function DashboardClient({
   useEffect(() => {
     async function refreshStatus() {
       try {
-        const response = await fetch("/api/youtube/data", { cache: "no-store" });
-        if (!response.ok) return;
-        const body = await response.json();
+        const [dataResponse, statusResponse] = await Promise.all([
+          fetch("/api/youtube/data", { cache: "no-store" }),
+          fetch("/api/youtube/status", { cache: "no-store" }),
+        ]);
+        if (!dataResponse.ok || !statusResponse.ok) return;
+        const body = await dataResponse.json();
+        const statusBody = await statusResponse.json();
         setLiveStatus({
           currentMode: body.lastSync?.accessMode || body.channel?.accessMode,
           oauthConnected: Boolean(body.oauthConnected),
@@ -52,6 +61,7 @@ export default function DashboardClient({
           videosSeen: body.lastSync?.videosSeen,
           commentsSeen: body.lastSync?.commentsSeen,
           warnings: body.lastSync?.warnings?.length ?? 0,
+          publicSyncRateLimit: statusBody.publicSyncRateLimit,
         });
       } catch {
         setLiveStatus(null);
@@ -172,7 +182,11 @@ function OperationsPanel({
             <small>Public sync uses the API key. Owner sync uses the channel owner&apos;s approved Google access.</small>
           </div>
           <div className="syncActions">
-            <button disabled={busy !== null} onClick={() => onSync("public_only")} type="button">
+            <button
+              disabled={busy !== null || Boolean(status.publicSyncRateLimit?.blocked)}
+              onClick={() => onSync("public_only")}
+              type="button"
+            >
               {busy === "public_only" ? "Syncing..." : "Sync public data"}
             </button>
             <a href="/api/auth/youtube/start">Connect owner OAuth</a>
@@ -181,6 +195,12 @@ function OperationsPanel({
             </button>
           </div>
         </div>
+        {status.publicSyncRateLimit?.blocked && status.publicSyncRateLimit.retryAt ? (
+          <p className="cooldownNote">Public sync is limited to 2 runs per IP every 12 hours. Next public sync window: {formatDate(status.publicSyncRateLimit.retryAt)}.</p>
+        ) : null}
+        {!status.publicSyncRateLimit?.blocked && typeof status.publicSyncRateLimit?.remainingAttempts === "number" ? (
+          <p className="cooldownNote">Public sync remaining in this 12-hour window for this IP: {status.publicSyncRateLimit.remainingAttempts}.</p>
+        ) : null}
         {syncError ? <p className="syncError">{syncError}</p> : null}
       </article>
     </section>

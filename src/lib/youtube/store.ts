@@ -4,7 +4,9 @@ import type { StoredChannel, StoredComment, StoredOAuth, StoredVideo, SyncWarnin
 import {
   consumeSupabaseOAuthState,
   isSupabaseConfigured,
+  readSupabasePublicSyncAttempts,
   readSupabaseStore,
+  saveSupabasePublicSyncAttempts,
   saveSupabaseOAuth,
   saveSupabaseSyncResult,
   setSupabaseOAuthState
@@ -44,6 +46,29 @@ export async function readYoutubeStore(): Promise<YoutubeStore> {
 
     throw error;
   }
+}
+
+export async function readPublicSyncAttempts(ipHash: string): Promise<string[]> {
+  if (isSupabaseConfigured()) {
+    return readSupabasePublicSyncAttempts(ipHash);
+  }
+
+  const store = await readYoutubeStore();
+  return store.publicSyncRateLimits?.[ipHash] || [];
+}
+
+export async function savePublicSyncAttempts(ipHash: string, attempts: string[]): Promise<void> {
+  if (isSupabaseConfigured()) {
+    await saveSupabasePublicSyncAttempts(ipHash, attempts);
+    return;
+  }
+
+  const store = await readYoutubeStore();
+  store.publicSyncRateLimits = {
+    ...(store.publicSyncRateLimits || {}),
+    [ipHash]: attempts,
+  };
+  await writeYoutubeStore(store);
 }
 
 export async function writeYoutubeStore(store: YoutubeStore): Promise<void> {
@@ -139,7 +164,6 @@ export async function saveSyncResult(input: {
     commentsSeen: input.comments.length,
     warnings: input.warnings
   };
-
   await writeYoutubeStore(store);
   return store;
 }

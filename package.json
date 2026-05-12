@@ -7,6 +7,7 @@
     "build": "next build",
     "export:comments": "python scripts/export_comment_insights_snapshot.py",
     "start": "next start",
+    "test": "tsx --test",
     "lint": "next lint",
     "typecheck": "tsc --noEmit"
   },
@@ -22,6 +23,7 @@
     "@types/react-dom": "^19.0.0",
     "eslint": "^9.25.0",
     "eslint-config-next": "^15.3.0",
+    "tsx": "^4.21.0",
     "typescript": "^5.8.0"
   }
 }

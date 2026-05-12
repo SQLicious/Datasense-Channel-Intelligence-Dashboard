@@ -1,9 +1,11 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { PUBLIC_SYNC_WINDOW_MS } from "./sync-rate-limit";
 import type { StoredChannel, StoredComment, StoredOAuth, StoredVideo, SyncWarning, YoutubeStore } from "./types";
 
 type SyncRun = YoutubeStore["lastSync"];
 
 let client: SupabaseClient | undefined;
+const publicSyncStatePrefix = "public-sync:";
 
 export function isSupabaseConfigured(): boolean {
   return Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
@@ -47,6 +49,49 @@ export async function readSupabaseStore(): Promise<YoutubeStore> {
     oauth: oauthRows?.[0] ? oauthFromRow(oauthRows[0]) : undefined,
     lastSync: syncRows?.[0] ? syncFromRow(syncRows[0]) : undefined
   };
+}
+
+export async function readSupabasePublicSyncAttempts(ipHash: string): Promise<string[]> {
+  const prefix = `${publicSyncStatePrefix}${ipHash}:`;
+  const now = Date.now();
+  const supabase = getSupabase();
+  const { data, error } = await supabase.from("youtube_oauth_states").select("state, expires_at").like("state", `${prefix}%`);
+
+  throwIfError(error);
+  const rows = (data || []).filter((row: any) => Number(row.expires_at) > now);
+
+  await supabase.from("youtube_oauth_states").delete().like("state", `${prefix}%`).lte("expires_at", now);
+
+  return rows
+    .map((row: any) => {
+      const suffix = String(row.state || "").slice(prefix.length);
+      const parsed = Number(suffix);
+      return Number.isNaN(parsed) ? undefined : new Date(parsed).toISOString();
+    })
+    .filter((value: string | undefined): value is string => Boolean(value));
+}
+
+export async function saveSupabasePublicSyncAttempts(ipHash: string, attempts: string[]): Promise<void> {
+  const prefix = `${publicSyncStatePrefix}${ipHash}:`;
+  const supabase = getSupabase();
+
+  await supabase.from("youtube_oauth_states").delete().like("state", `${prefix}%`);
+
+  if (attempts.length === 0) {
+    return;
+  }
+
+  const { error } = await supabase.from("youtube_oauth_states").insert(
+    attempts.map((attempt) => {
+      const parsed = Date.parse(attempt);
+      return {
+        state: `${prefix}${parsed}`,
+        expires_at: parsed + PUBLIC_SYNC_WINDOW_MS,
+      };
+    })
+  );
+
+  throwIfError(error);
 }
 
 export async function setSupabaseOAuthState(state: string, expiresAt: number): Promise<void> {

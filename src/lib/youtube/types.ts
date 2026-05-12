@@ -69,6 +69,7 @@ export type YoutubeStore = {
   channel?: StoredChannel;
   videos: Record<string, StoredVideo>;
   comments: Record<string, StoredComment>;
+  publicSyncRateLimits?: Record<string, string[]>;
   oauth?: StoredOAuth;
   oauthState?: {
     state: string;
